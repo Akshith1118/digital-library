@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libris Digital - User Management</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Material+Symbols+Outlined" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar d-flex flex-col p-3 text-white">
+    <div class="d-flex align-items-center gap-2 mb-4 px-2">
+        <span class="material-symbols-outlined text-warning fs-3">local_library</span>
+        <h4 class="fw-bold m-0">Libris Admin</h4>
+    </div>
+    <ul class="nav nav-pills flex-column mb-auto gap-1">
+        <li>
+            <a href="/admin/dashboard" class="nav-link text-white d-flex align-items-center gap-3 py-2 px-3">
+                <span class="material-symbols-outlined">dashboard</span> Dashboard
+            </a>
+        </li>
+        <li>
+            <a href="/admin/books" class="nav-link text-white d-flex align-items-center gap-3 py-2 px-3">
+                <span class="material-symbols-outlined">menu_book</span> Book Management
+            </a>
+        </li>
+        <li>
+            <a href="/admin/users" class="nav-link text-white active d-flex align-items-center gap-3 py-2 px-3">
+                <span class="material-symbols-outlined">manage_accounts</span> User Management
+            </a>
+        </li>
+        <li>
+            <a href="/admin/reports" class="nav-link text-white d-flex align-items-center gap-3 py-2 px-3">
+                <span class="material-symbols-outlined">assessment</span> Reports & Logs
+            </a>
+        </li>
+        <li>
+            <a href="/profile" class="nav-link text-white d-flex align-items-center gap-3 py-2 px-3">
+                <span class="material-symbols-outlined">person</span> Profile Settings
+            </a>
+        </li>
+    </ul>
+    <hr class="text-white-50">
+    <div>
+        <a href="/logout" class="nav-link text-danger d-flex align-items-center gap-3 py-2 px-3">
+            <span class="material-symbols-outlined">logout</span> Log Out
+        </a>
+    </div>
+</aside>
+
+<!-- Main Container -->
+<main class="main-content p-4">
+    <!-- Header -->
+    <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-secondary d-lg-none" id="sidebar-toggle">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            <h2 class="fw-bold m-0 text-primary">User Accounts</h2>
+        </div>
+        <button class="btn btn-primary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <span class="material-symbols-outlined">person_add</span> Add Member
+        </button>
+    </header>
+
+    <!-- Alert Messages -->
+    {% if success %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ success }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- Filter Tab Bar -->
+    <div class="card p-3 mb-4 d-flex flex-wrap gap-2 justify-content-between align-items-center">
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary active" id="btn-all" onclick="filterUsers('all')">All Members</button>
+            <button type="button" class="btn btn-outline-primary" id="btn-student" onclick="filterUsers('student')">Students Only</button>
+            <button type="button" class="btn btn-outline-primary" id="btn-teacher" onclick="filterUsers('teacher')">Teachers Only</button>
+        </div>
+        <input type="text" class="form-control table-search w-auto" data-target-table="#users-table" placeholder="Quick search users...">
+    </div>
+
+    <!-- Users Table -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="users-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Avatar</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Registered Date</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr data-role="{{ user.role }}">
+                        <td>
+                            <img src="/static/uploads/{{ user.profile_image or 'default_profile.png' }}" class="rounded-circle border" width="40" height="40" alt="Profile">
+                        </td>
+                        <td class="fw-bold text-dark">{{ user.fullname }}</td>
+                        <td><code>{{ user.email }}</code></td>
+                        <td>
+                            {% if user.role == 'student' %}
+                            <span class="badge bg-secondary text-uppercase">{{ user.role }}</span>
+                            {% elif user.role == 'teacher' %}
+                            <span class="badge bg-success text-uppercase">{{ user.role }}</span>
+                            {% elif user.role == 'admin' %}
+                            <span class="badge bg-danger text-uppercase">{{ user.role }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.status == 'active' %}
+                            <span class="badge bg-success-subtle text-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-danger-subtle text-danger">Blocked</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">{{ user.created_at }}</td>
+                        <td class="text-end">
+                            {% if user.role != 'admin' %}
+                                {% if user.status == 'active' %}
+                                <form action="/admin/users/block/{{ user.id }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">Block</button>
+                                </form>
+                                {% else %}
+                                <form action="/admin/users/activate/{{ user.id }}" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Activate</button>
+                                </form>
+                                {% endif %}
+                                <form action="/admin/users/delete/{{ user.id }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this user? All transaction history will be purged!');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                </form>
+                            {% else %}
+                            <span class="text-muted small">System Owner</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No users registered in the portal.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+function filterUsers(role) {
+    // Update active button state
+    document.querySelectorAll('.btn-group .btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`btn-${role}`).classList.add('active');
+
+    const rows = document.querySelectorAll('#users-table tbody tr');
+    rows.forEach(row => {
+        const uRole = row.getAttribute('data-role');
+        if (role === 'all' || uRole === role) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+</script>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold" id="addUserModalLabel">Add New Member</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/admin/users/add" method="POST">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label for="fullname" class="form-label fw-semibold">Full Name</label>
+                        <input type="text" class="form-control" id="fullname" name="fullname" placeholder="e.g. John Doe" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-semibold">User ID</label>
+                        <input type="text" class="form-control" id="email" name="email" placeholder="e.g. john123" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label fw-semibold">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Min 6 characters" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label fw-semibold">Account Role</label>
+                        <select class="form-select" id="role" name="role" required>
+                            <option value="student" selected>Student</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="admin">Administrator</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-3 bg-light d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-4">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,116 @@
+body{
+    margin:0;
+    padding:0;
+
+    height:100vh;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    background-size:cover;
+    background-position:center;
+
+    animation:bgChange 15s infinite;
+
+    font-family:Arial;
+}
+
+@keyframes bgChange{
+
+    0%{
+        background-image:url('/static/image1.png');
+    }
+
+    33%{
+        background-image:url('/static/image2.png');
+    }
+
+    66%{
+        background-image:url('/static/image3.png');
+    }
+
+    100%{
+        background-image:url('/static/image1.png');
+    }
+}
+
+.register-box{
+
+    width:700px;
+
+    background:rgba(255,255,255,0.85);
+
+    padding:30px;
+
+    border-radius:15px;
+
+    box-shadow:0 0 15px black;
+}
+
+h2{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+.form-group{
+
+    display:flex;
+
+    gap:15px;
+
+    margin-bottom:15px;
+}
+
+input, select{
+
+    flex:1;
+
+    padding:12px;
+
+    border:1px solid gray;
+
+    border-radius:5px;
+}
+
+textarea{
+
+    width:100%;
+
+    height:80px;
+
+    padding:12px;
+
+    border:1px solid gray;
+
+    border-radius:5px;
+
+    margin-bottom:15px;
+}
+
+button{
+
+    width:100%;
+
+    padding:12px;
+
+    background:blue;
+
+    color:white;
+
+    border:none;
+
+    border-radius:5px;
+
+    cursor:pointer;
+
+    font-size:16px;
+}
+
+button:hover{
+    background:darkblue;
+}
+
+a{
+    text-decoration:none;
+}

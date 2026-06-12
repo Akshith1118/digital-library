@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libris Digital - Member Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Material+Symbols+Outlined" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar d-flex flex-col p-3 text-white">
+    <div class="d-flex align-items-center gap-2 mb-4 px-2">
+        <span class="material-symbols-outlined text-warning fs-3">local_library</span>
+        <h4 class="fw-bold m-0">Libris Portal</h4>
+    </div>
+    <ul class="nav nav-pills flex-column mb-auto gap-1">
+        <li class="nav-item">
+            <a href="/dashboard" class="nav-link text-white active d-flex align-items-center gap-3 py-2 px-3">
+                <span class="material-symbols-outlined">dashboard</span> Dashboard
+            </a>
+        </li>
+        <li>
+            <a href="/profile" class="nav-link text-white d-flex align-items-center gap-3 py-2 px-3">
+                <span class="material-symbols-outlined">person</span> My Profile
+            </a>
+        </li>
+    </ul>
+    <hr class="text-white-50">
+    <div>
+        <a href="/logout" class="nav-link text-danger d-flex align-items-center gap-3 py-2 px-3">
+            <span class="material-symbols-outlined">logout</span> Log Out
+        </a>
+    </div>
+</aside>
+
+<!-- Main Container -->
+<main class="main-content p-4">
+    <!-- Header -->
+    <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-secondary d-lg-none" id="sidebar-toggle">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            <h2 class="fw-bold m-0 text-primary">Member Portal</h2>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-light rounded-circle p-2 d-flex align-items-center" id="theme-toggle">
+                <span class="material-symbols-outlined">dark_mode</span>
+            </button>
+            <div class="d-flex align-items-center gap-2">
+                <img src="/static/uploads/{{ session.get('profile_image', 'default_profile.png') }}" class="rounded-circle border" width="40" height="40" alt="Avatar">
+                <span class="fw-semibold d-none d-md-inline">{{ session.get('name', 'User') }}</span>
+                <span class="badge bg-secondary text-uppercase small">{{ session.get('role', 'student') }}</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Alert Messages -->
+    {% if success %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        {{ success }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        {{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- Welcome section -->
+    <div class="mb-4">
+        <h4>Welcome back, <strong>{{ session.get('name', 'User') }}</strong>!</h4>
+        <p class="text-muted">Here are your active borrow parameters. Keep track of due dates to avoid overdue fines.</p>
+    </div>
+
+    <!-- Limit Info Banner -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card p-3 text-center border-start border-4 border-primary">
+                <span class="text-muted small">Max Borrow Limit</span>
+                <h4 class="fw-bold m-0">{{ limits.max_books }} Books</h4>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card p-3 text-center border-start border-4 border-success">
+                <span class="text-muted small">Borrow Duration</span>
+                <h4 class="fw-bold m-0">{{ limits.duration_days }} Days</h4>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Tab Systems -->
+    <ul class="nav nav-tabs mb-4" id="portalTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active fw-bold" id="catalog-tab" data-bs-toggle="tab" data-bs-target="#catalog" type="button" role="tab">Book Catalog</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link fw-bold" id="loans-tab" data-bs-toggle="tab" data-bs-target="#loans" type="button" role="tab">Active Borrowing & History</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link fw-bold" id="recs-tab" data-bs-toggle="tab" data-bs-target="#recs" type="button" role="tab">Recommended For You</button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="portalTabsContent">
+        <!-- 1. Catalog Tab -->
+        <div class="tab-pane fade show active" id="catalog" role="tabpanel">
+            <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold m-0">Library Catalog</h5>
+                <input type="text" class="form-control table-search w-auto" data-target-table="#books-table-id" placeholder="Quick filter books...">
+            </div>
+            
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="books-table-id">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Cover</th>
+                                <th>Title</th>
+                                <th>Author</th>
+                                <th>ISBN</th>
+                                <th>Category</th>
+                                <th>Publisher</th>
+                                <th>Availability</th>
+                                <th>QR</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for book in books %}
+                            <tr>
+                                <td>
+                                    <img src="/static/uploads/{{ book.cover_image or 'default_cover.png' }}" class="rounded shadow-sm" width="45" height="60" alt="Cover" style="object-fit: cover;">
+                                </td>
+                                <td class="fw-bold text-dark">{{ book.title }}</td>
+                                <td>{{ book.author }}</td>
+                                <td><code>{{ book.isbn }}</code></td>
+                                <td><span class="badge bg-secondary-subtle text-secondary">{{ book.category }}</span></td>
+                                <td>{{ book.publisher }}</td>
+                                <td>
+                                    {% if book.available_quantity > 0 %}
+                                    <span class="badge bg-success">{{ book.available_quantity }} / {{ book.quantity }} Available</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Out of Stock</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="material-symbols-outlined text-muted cursor-pointer" onclick="simulateQRScan('issue', '{{ book.book_id }}')">qr_code_2</span>
+                                </td>
+                                <td>
+                                    {% if book.available_quantity > 0 %}
+                                    <form action="/borrow/{{ book.book_id }}" method="POST">
+                                        <button type="submit" class="btn btn-sm btn-primary">Request</button>
+                                    </form>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-secondary" disabled>Request</button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">No books found in inventory.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Loans & History Tab -->
+        <div class="tab-pane fade" id="loans" role="tabpanel">
+            <h5 class="fw-bold mb-3">Your Borrow History</h5>
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Book Title</th>
+                                <th>Issue Date</th>
+                                <th>Due Date</th>
+                                <th>Return Date</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions %}
+                            <tr>
+                                <td class="fw-bold">{{ transaction.title }}</td>
+                                <td>{{ transaction.issue_date }}</td>
+                                <td>{{ transaction.due_date }}</td>
+                                <td>{{ transaction.return_date or '-' }}</td>
+                                <td>
+                                    {% if transaction.status == 'requested' %}
+                                    <span class="badge bg-warning text-dark">Requested</span>
+                                    {% elif transaction.status == 'issued' %}
+                                    <span class="badge bg-primary">Issued</span>
+                                    {% elif transaction.status == 'returned' %}
+                                    <span class="badge bg-success">Returned</span>
+                                    {% elif transaction.status == 'overdue' %}
+                                    <span class="badge bg-danger">Overdue</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if transaction.status == 'issued' or transaction.status == 'overdue' %}
+                                    <form action="/return/{{ transaction.transaction_id }}" method="POST">
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Return Book</button>
+                                    </form>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">You have no active transactions or history.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Recommendations Tab -->
+        <div class="tab-pane fade" id="recs" role="tabpanel">
+            <h5 class="fw-bold mb-3">Tailored For You</h5>
+            <div class="row g-4">
+                {% for rec in recommendations %}
+                <div class="col-md-6 col-lg-3">
+                    <div class="card h-100 glow-card border">
+                        <img src="/static/uploads/{{ rec.cover_image or 'default_cover.png' }}" class="card-img-top" alt="Cover" style="height: 250px; object-fit: cover;">
+                        <div class="card-body">
+                            <h6 class="fw-bold mb-1">{{ rec.title }}</h6>
+                            <p class="text-muted small mb-2">By {{ rec.author }}</p>
+                            <span class="badge bg-secondary-subtle text-secondary mb-3">{{ rec.category }}</span>
+                            {% if rec.available_quantity > 0 %}
+                            <form action="/borrow/{{ rec.book_id }}" method="POST">
+                                <button type="submit" class="btn btn-sm btn-primary w-100">Quick Request</button>
+                            </form>
+                            {% else %}
+                            <button class="btn btn-sm btn-secondary w-100" disabled>Out of Stock</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-4">Borrow more books to trigger personalized recommendations.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

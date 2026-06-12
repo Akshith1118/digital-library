@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Libris Digital - Reports & Logs</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Material+Symbols+Outlined" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar d-flex flex-col p-3 text-white">
+    <div class="d-flex align-items-center gap-2 mb-4 px-2">
+        <span class="material-symbols-outlined text-warning fs-3">local_library</span>
+        <h4 class="fw-bold m-0">Libris Admin</h4>
+    </div>
+    <ul class="nav nav-pills flex-column mb-auto gap-1">
+        <li>
+            <a href="/admin/dashboard" class="nav-link text-white d-flex align-items-center gap-3 py-2 px-3">
+                <span class="material-symbols-outlined">dashboard</span> Dashboard
+            </a>
+        </li>
+        <li>
+            <a href="/admin/books" class="nav-link text-white d-flex align-items-center gap-3 py-2 px-3">
+                <span class="material-symbols-outlined">menu_book</span> Book Management
+            </a>
+        </li>
+        <li>
+            <a href="/admin/users" class="nav-link text-white d-flex align-items-center gap-3 py-2 px-3">
+                <span class="material-symbols-outlined">manage_accounts</span> User Management
+            </a>
+        </li>
+        <li>
+            <a href="/admin/reports" class="nav-link text-white active d-flex align-items-center gap-3 py-2 px-3">
+                <span class="material-symbols-outlined">assessment</span> Reports & Logs
+            </a>
+        </li>
+        <li>
+            <a href="/profile" class="nav-link text-white d-flex align-items-center gap-3 py-2 px-3">
+                <span class="material-symbols-outlined">person</span> Profile Settings
+            </a>
+        </li>
+    </ul>
+    <hr class="text-white-50">
+    <div>
+        <a href="/logout" class="nav-link text-danger d-flex align-items-center gap-3 py-2 px-3">
+            <span class="material-symbols-outlined">logout</span> Log Out
+        </a>
+    </div>
+</aside>
+
+<!-- Main Container -->
+<main class="main-content p-4">
+    <!-- Header -->
+    <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-secondary d-lg-none" id="sidebar-toggle">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            <h2 class="fw-bold m-0 text-primary">System Reports & Audit Trails</h2>
+        </div>
+    </header>
+
+    <!-- Report Generation Card -->
+    <div class="card p-4 mb-4">
+        <h5 class="fw-bold mb-3 text-secondary">Export System Datasets</h5>
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-3">
+                <a href="/admin/reports/export/excel?type=transactions" class="btn btn-success w-100 py-3 fw-bold d-flex align-items-center justify-content-center gap-2">
+                    <span class="material-symbols-outlined">download</span> Export Transactions (Excel)
+                </a>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <a href="/admin/reports/export/pdf?type=transactions" class="btn btn-danger w-100 py-3 fw-bold d-flex align-items-center justify-content-center gap-2">
+                    <span class="material-symbols-outlined">picture_as_pdf</span> Export Transactions (PDF)
+                </a>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <a href="/admin/reports/export/excel?type=logs" class="btn btn-outline-success w-100 py-3 fw-bold d-flex align-items-center justify-content-center gap-2">
+                    <span class="material-symbols-outlined">download</span> Export System Logs (Excel)
+                </a>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <a href="/admin/reports/export/pdf?type=logs" class="btn btn-outline-danger w-100 py-3 fw-bold d-flex align-items-center justify-content-center gap-2">
+                    <span class="material-symbols-outlined">picture_as_pdf</span> Export System Logs (PDF)
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Transactions Ledger -->
+    <div class="card p-4 mb-4">
+        <h5 class="fw-bold mb-3">Historical Book Borrowing Transactions</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Transaction ID</th>
+                        <th>User Name</th>
+                        <th>Book Title</th>
+                        <th>Issue Date</th>
+                        <th>Due Date</th>
+                        <th>Return Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trans in transactions %}
+                    <tr>
+                        <td>#{{ trans.transaction_id }}</td>
+                        <td class="fw-semibold">{{ trans.fullname }}</td>
+                        <td>{{ trans.title }}</td>
+                        <td>{{ trans.issue_date }}</td>
+                        <td>{{ trans.due_date }}</td>
+                        <td>{{ trans.return_date or '-' }}</td>
+                        <td>
+                            {% if trans.status == 'requested' %}
+                            <span class="badge bg-warning text-dark">Requested</span>
+                            {% elif trans.status == 'issued' %}
+                            <span class="badge bg-primary">Issued</span>
+                            {% elif trans.status == 'returned' %}
+                            <span class="badge bg-success">Returned</span>
+                            {% elif trans.status == 'overdue' %}
+                            <span class="badge bg-danger">Overdue</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">No borrowing transactions registered.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

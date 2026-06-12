@@ -1,0 +1,116 @@
+/* Custom CSS for Library Management System */
+
+:root {
+    --sidebar-width: 260px;
+    --transition-speed: 0.3s;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8f9fa;
+    transition: background-color var(--transition-speed), color var(--transition-speed);
+}
+
+/* Dark Mode Overrides */
+body.dark-mode {
+    background-color: #121212;
+    color: #e0e0e0;
+}
+
+body.dark-mode .card, 
+body.dark-mode .modal-content, 
+body.dark-mode .list-group-item,
+body.dark-mode table {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    border-color: #333333;
+}
+
+body.dark-mode th, 
+body.dark-mode td {
+    color: #e0e0e0;
+    border-color: #333333;
+}
+
+body.dark-mode input, 
+body.dark-mode select, 
+body.dark-mode textarea {
+    background-color: #2d2d2d;
+    color: #ffffff;
+    border-color: #444444;
+}
+
+body.dark-mode input:focus, 
+body.dark-mode select:focus, 
+body.dark-mode textarea:focus {
+    background-color: #333333;
+    color: #ffffff;
+}
+
+/* Sidebar Styling */
+.sidebar {
+    width: var(--sidebar-width);
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background-color: #1e3a8a;
+    color: #ffffff;
+    transition: transform var(--transition-speed);
+    z-index: 1000;
+}
+
+.sidebar a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: all var(--transition-speed);
+}
+
+.sidebar a:hover, .sidebar a.active {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-left: 4px solid #f59e0b;
+}
+
+.main-content {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    transition: margin-left var(--transition-speed);
+}
+
+@media (max-width: 991.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    .main-content {
+        margin-left: 0;
+    }
+}
+
+/* Custom UI Polish */
+.card {
+    border: none;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    border-radius: 12px;
+}
+
+.btn-primary {
+    background-color: #1e3a8a;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #172554;
+}
+
+/* Glow effects for active elements */
+.glow-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.glow-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(30, 58, 138, 0.2);
+}
