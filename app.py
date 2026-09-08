@@ -96,6 +96,18 @@ def init_sqlite_db(conn):
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
     );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        transaction_id INTEGER,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        type TEXT DEFAULT 'overdue_warning',
+        is_read INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
     """)
     # Seed admin credential if table is empty (password is "password123")
     cursor.execute("SELECT COUNT(*) FROM users")
@@ -136,6 +148,156 @@ def send_email_notification(to_email, subject, body):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
 
+# Helper to safely parse datetimes
+def parse_datetime(val):
+    if isinstance(val, datetime.datetime):
+        return val
+    if isinstance(val, str):
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d"):
+            try:
+                return datetime.datetime.strptime(val, fmt)
+            except ValueError:
+                pass
+    return None
+
+# Method that sends notification after students took book over 15 days on book due to return
+def notify_overdue_students(days_threshold=15, force=False):
+    """
+    Sends notification when students have taken/held a book for over `days_threshold` days
+    (default 15 days) and the book has not been returned (status in 'issued', 'overdue').
+    
+    Workflow:
+      1. Identifies student loans (role == 'student') that are unreturned.
+      2. Calculates days held since issue date: (now - issue_date).days
+         and days overdue past due date: (now - due_date).days.
+      3. If days_held >= days_threshold or days_overdue >= days_threshold:
+         - Dispatches simulated email notification
+         - Stores in-app notification in `notifications` table (avoiding duplicates within 24h unless force=True)
+         - Records audit trail in `activity_logs`
+         - Marks transaction status as 'overdue'
+    
+    Returns:
+      List of dictionary records for all students notified.
+    """
+    conn, cursor = get_db_cursor()
+    
+    q = """
+    SELECT 
+        t.transaction_id,
+        t.user_id,
+        t.book_id,
+        t.issue_date,
+        t.due_date,
+        t.status,
+        u.fullname AS student_name,
+        u.email AS student_email,
+        u.role AS user_role,
+        b.title AS book_title,
+        b.author AS book_author,
+        b.isbn AS book_isbn
+    FROM transactions t
+    JOIN users u ON t.user_id = u.id
+    JOIN books b ON t.book_id = b.book_id
+    WHERE u.role = 'student'
+      AND (t.return_date IS NULL OR t.return_date = '')
+      AND t.status IN ('issued', 'overdue')
+    """
+    cursor.execute(q)
+    rows = cursor.fetchall()
+    
+    now = datetime.datetime.now()
+    notified_records = []
+    
+    for row in rows:
+        issue_dt = parse_datetime(row['issue_date'])
+        due_dt = parse_datetime(row['due_date'])
+        
+        if not issue_dt:
+            continue
+            
+        days_held = (now - issue_dt).days
+        days_overdue = (now - due_dt).days if (due_dt and now > due_dt) else 0
+        
+        # Check condition: student took the book for over days_threshold days (15+ days)
+        if days_held >= days_threshold or days_overdue >= days_threshold:
+            # Check duplicate alert within last 24 hours to avoid spamming
+            if not force:
+                chk_q = """
+                SELECT id, created_at FROM notifications 
+                WHERE user_id = ? AND transaction_id = ? AND type = 'overdue_warning'
+                ORDER BY created_at DESC LIMIT 1
+                """ if USING_SQLITE else """
+                SELECT id, created_at FROM notifications 
+                WHERE user_id = %s AND transaction_id = %s AND type = 'overdue_warning'
+                ORDER BY created_at DESC LIMIT 1
+                """
+                cursor.execute(chk_q, (row['user_id'], row['transaction_id']))
+                recent_notif = cursor.fetchone()
+                if recent_notif:
+                    raw_dt = recent_notif['created_at'] if isinstance(recent_notif, dict) else recent_notif[1]
+                    recent_dt = parse_datetime(raw_dt)
+                    if recent_dt and (now - recent_dt).total_seconds() < 86400:
+                        # Already notified within the past 24 hours
+                        continue
+            
+            # Formulate notification subject and message
+            title = f"Urgent: Book Return Overdue Notice - '{row['book_title']}'"
+            due_str = due_dt.strftime('%Y-%m-%d') if due_dt else str(row['due_date'])
+            issue_str = issue_dt.strftime('%Y-%m-%d') if issue_dt else str(row['issue_date'])
+            
+            message = (
+                f"Dear {row['student_name']},\n\n"
+                f"You borrowed the book '{row['book_title']}' on {issue_str}. "
+                f"You have had this book for {days_held} days, which exceeds the allowed 15-day limit.\n"
+                f"The scheduled return due date was: {due_str} ({days_overdue} day(s) overdue).\n\n"
+                f"Please return this book to the library immediately to resolve your overdue status "
+                f"and prevent further fines or borrowing restrictions.\n\n"
+                f"— Libris Digital Library"
+            )
+            
+            # 1. Send Simulated Email Notification
+            send_email_notification(row['student_email'], title, message)
+            
+            # 2. Insert into notifications table for in-app display
+            ins_notif = """
+            INSERT INTO notifications (user_id, transaction_id, title, message, type, is_read, created_at)
+            VALUES (?, ?, ?, ?, 'overdue_warning', 0, ?)
+            """ if USING_SQLITE else """
+            INSERT INTO notifications (user_id, transaction_id, title, message, type, is_read, created_at)
+            VALUES (%s, %s, %s, %s, 'overdue_warning', 0, %s)
+            """
+            cursor.execute(ins_notif, (row['user_id'], row['transaction_id'], title, message, now.strftime("%Y-%m-%d %H:%M:%S")))
+            
+            # 3. Log to activity_logs
+            ins_log = """
+            INSERT INTO activity_logs (user_id, action, timestamp) VALUES (?, ?, ?)
+            """ if USING_SQLITE else """
+            INSERT INTO activity_logs (user_id, action, timestamp) VALUES (%s, %s, %s)
+            """
+            log_msg = f"Overdue return notice sent to {row['student_name']} for '{row['book_title']}' (Held: {days_held} days, Overdue: {days_overdue} days)"
+            cursor.execute(ins_log, (row['user_id'], log_msg, now.strftime("%Y-%m-%d %H:%M:%S")))
+            
+            # 4. Update transaction status to overdue if not already
+            if row['status'] != 'overdue':
+                up_st = "UPDATE transactions SET status = 'overdue' WHERE transaction_id = ?" if USING_SQLITE else "UPDATE transactions SET status = 'overdue' WHERE transaction_id = %s"
+                cursor.execute(up_st, (row['transaction_id'],))
+                
+            notified_records.append({
+                'transaction_id': row['transaction_id'],
+                'student_id': row['user_id'],
+                'student_name': row['student_name'],
+                'student_email': row['student_email'],
+                'book_title': row['book_title'],
+                'issue_date': issue_str,
+                'due_date': due_str,
+                'days_held': days_held,
+                'days_overdue': days_overdue
+            })
+            
+    conn.commit()
+    conn.close()
+    return notified_records
+
 # Fine calculations engine
 def update_overdue_fines():
     conn, cursor = get_db_cursor()
@@ -147,13 +309,10 @@ def update_overdue_fines():
     
     for row in rows:
         due_val = row['due_date']
-        if isinstance(due_val, str):
-            due = datetime.datetime.strptime(due_val, "%Y-%m-%d %H:%M:%S")
-        else:
-            due = due_val
+        due = parse_datetime(due_val)
         now = datetime.datetime.now()
         
-        if now > due:
+        if due and now > due:
             qu = """
             UPDATE transactions 
             SET status = 'overdue' 
@@ -167,6 +326,9 @@ def update_overdue_fines():
             cursor.execute(qu, (tid,))
     conn.commit()
     conn.close()
+    
+    # Automatically check and dispatch notifications for students whose book loans exceed 15 days
+    notify_overdue_students(days_threshold=15, force=False)
 
 # Helper for login protection
 def is_logged_in():
@@ -286,8 +448,13 @@ def dashboard():
     cursor.execute(q_recs)
     recommendations = cursor.fetchall()
     
+    # Fetch active unread notifications
+    q_notifs = "SELECT * FROM notifications WHERE user_id = ? AND is_read = 0 ORDER BY created_at DESC" if USING_SQLITE else "SELECT * FROM notifications WHERE user_id = %s AND is_read = 0 ORDER BY created_at DESC"
+    cursor.execute(q_notifs, (session['user_id'],))
+    notifications = cursor.fetchall()
+    
     conn.close()
-    return render_template('user_dashboard.html', books=books, transactions=transactions, limits=limits, recommendations=recommendations)
+    return render_template('user_dashboard.html', books=books, transactions=transactions, limits=limits, recommendations=recommendations, notifications=notifications)
 
 # Admin Dashboard
 @app.route('/admin/dashboard')
@@ -314,6 +481,24 @@ def admin_dashboard():
     stats['total_teachers'] = get_count("SELECT COUNT(*) FROM users WHERE role='teacher'")
     stats['books_issued'] = get_count("SELECT COUNT(*) FROM transactions WHERE status IN ('issued', 'overdue')")
     
+    # Overdue student loans (> 15 days)
+    q_overdue_15 = """
+    SELECT COUNT(*) FROM transactions t 
+    JOIN users u ON t.user_id = u.id 
+    WHERE u.role = 'student' 
+      AND (t.return_date IS NULL OR t.return_date = '') 
+      AND t.status IN ('issued', 'overdue')
+      AND (julianday('now') - julianday(t.issue_date)) >= 15
+    """ if USING_SQLITE else """
+    SELECT COUNT(*) FROM transactions t 
+    JOIN users u ON t.user_id = u.id 
+    WHERE u.role = 'student' 
+      AND (t.return_date IS NULL OR t.return_date = '') 
+      AND t.status IN ('issued', 'overdue')
+      AND DATEDIFF(NOW(), t.issue_date) >= 15
+    """
+    stats['overdue_15_students'] = get_count(q_overdue_15)
+    
     # Fetch activity logs
     q_logs = """
     SELECT a.*, u.fullname as user_name 
@@ -325,7 +510,41 @@ def admin_dashboard():
     logs = cursor.fetchall()
     
     conn.close()
-    return render_template('admin_dashboard.html', stats=stats, logs=logs)
+    notification_msg = request.args.get('notification_msg')
+    return render_template('admin_dashboard.html', stats=stats, logs=logs, success=notification_msg)
+
+# Admin route to manually trigger overdue notifications (15+ days)
+@app.route('/admin/notify_overdue', methods=['GET', 'POST'])
+def trigger_overdue_notifications():
+    if not is_logged_in() or session['role'] != 'admin':
+        return redirect(url_for('login'))
+        
+    days = request.args.get('days', default=15, type=int)
+    notified = notify_overdue_students(days_threshold=days, force=True)
+    count = len(notified)
+    
+    if count > 0:
+        names = ", ".join([n['student_name'] for n in notified[:3]])
+        if count > 3:
+            names += f" and {count - 3} others"
+        msg = f"Overdue return notices successfully sent to {count} student(s) who held books for over {days} days ({names})."
+    else:
+        msg = f"No student currently has unreturned books borrowed for over {days} days."
+        
+    return redirect(url_for('admin_dashboard', notification_msg=msg))
+
+# Mark notification as read / dismiss
+@app.route('/notifications/read/<int:notification_id>', methods=['POST'])
+def mark_notification_read(notification_id):
+    if not is_logged_in():
+        return redirect(url_for('login'))
+        
+    conn, cursor = get_db_cursor()
+    q = "UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?" if USING_SQLITE else "UPDATE notifications SET is_read = 1 WHERE id = %s AND user_id = %s"
+    cursor.execute(q, (notification_id, session['user_id']))
+    conn.commit()
+    conn.close()
+    return redirect(request.referrer or url_for('dashboard'))
 
 # Book Management View
 @app.route('/admin/books')

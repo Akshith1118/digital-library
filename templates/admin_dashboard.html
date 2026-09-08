@@ -18,10 +18,19 @@
 <!-- Main Container -->
 <main class="main-content container-fluid px-4 py-4">
     <!-- Header -->
-    <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+    <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-2">
         <h2 class="fw-bold m-0 text-primary d-flex align-items-center gap-2">
             <span class="material-symbols-outlined fs-2">dashboard</span> System Overview
         </h2>
+        <div class="d-flex align-items-center gap-2">
+            <a href="/admin/notify_overdue" class="btn btn-outline-danger d-flex align-items-center gap-2 shadow-sm fw-semibold">
+                <span class="material-symbols-outlined fs-5">forward_to_inbox</span>
+                <span>Send Overdue Notices (15+ Days)</span>
+                {% if stats.overdue_15_students and stats.overdue_15_students > 0 %}
+                <span class="badge bg-danger rounded-pill">{{ stats.overdue_15_students }}</span>
+                {% endif %}
+            </a>
+        </div>
     </header>
 
     <!-- Alert Messages -->
@@ -32,18 +41,18 @@
     </div>
     {% endif %}
 
-    <section class="row g-4 mb-5">
-        <div class="col-12 col-md-4">
+    <section class="row g-3 mb-5">
+        <div class="col-12 col-sm-6 col-lg-3">
             <div class="card p-3 glow-card">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="material-symbols-outlined text-primary fs-2">menu_book</span>
-                    <span class="badge bg-primary-subtle text-primary">+{{ stats.books_added_percentage or 0 }}%</span>
+                    <span class="badge bg-primary-subtle text-primary">Library</span>
                 </div>
                 <p class="text-muted small mb-1">Total Books</p>
                 <h3 class="fw-bold m-0">{{ stats.total_books or 0 }}</h3>
             </div>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-sm-6 col-lg-3">
             <div class="card p-3 glow-card">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="material-symbols-outlined text-success fs-2">group</span>
@@ -53,7 +62,7 @@
                 <h3 class="fw-bold m-0">{{ (stats.total_students or 0) + (stats.total_teachers or 0) }}</h3>
             </div>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-12 col-sm-6 col-lg-3">
             <div class="card p-3 glow-card">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <span class="material-symbols-outlined text-warning fs-2">output</span>
@@ -61,6 +70,16 @@
                 </div>
                 <p class="text-muted small mb-1">Books Issued</p>
                 <h3 class="fw-bold m-0">{{ stats.books_issued or 0 }}</h3>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="card p-3 glow-card border-start border-4 border-danger">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="material-symbols-outlined text-danger fs-2">alarm</span>
+                    <span class="badge bg-danger-subtle text-danger">> 15 Days</span>
+                </div>
+                <p class="text-muted small mb-1">Overdue Students</p>
+                <h3 class="fw-bold m-0 text-danger">{{ stats.overdue_15_students or 0 }}</h3>
             </div>
         </div>
     </section>
