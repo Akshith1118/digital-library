@@ -3,3 +3,5 @@ mysql-connector-python==8.3.0
 Werkzeug==3.0.1
 qrcode==7.4.2
 Pillow==11.3.0
+gunicorn>=21.2.0
+
