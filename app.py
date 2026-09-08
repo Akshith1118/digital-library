@@ -3,12 +3,21 @@ import datetime
 from flask import Flask, render_template, request, redirect, url_for, session, send_file
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-import mysql.connector
 import sqlite3
 import qrcode
 
+# Only import mysql.connector when not forcing SQLite mode
+if not os.environ.get('USE_SQLITE'):
+    try:
+        import mysql.connector
+    except ImportError:
+        mysql = None
+else:
+    mysql = None
+
 app = Flask(__name__)
-app.secret_key = "libris_digital_super_secret_session_key"
+# Read secret key from environment variable for security; fall back for local dev
+app.secret_key = os.environ.get('SECRET_KEY', 'libris_digital_super_secret_session_key')
 
 # Configuration for file uploads
 UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads')
@@ -22,30 +31,40 @@ with open(os.path.join(UPLOAD_FOLDER, 'default_cover.png'), 'w') as f:
     f.write('')
 
 # Database Config & Initialization
-# Dual Database Mode: Will attempt MySQL connection. If it fails, falls back automatically to SQLite for easy evaluation.
-USING_SQLITE = False
+# Dual Database Mode: Will attempt MySQL connection. If it fails (or USE_SQLITE env var is set),
+# falls back automatically to SQLite for easy evaluation / Render deployment.
+USING_SQLITE = bool(os.environ.get('USE_SQLITE'))
 db_conn = None
+
+# Use an absolute path for SQLite so it works from any working directory (e.g. on Render)
+SQLITE_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'library_local.db')
 
 def get_db_cursor():
     global USING_SQLITE, db_conn
     if USING_SQLITE:
-        conn = sqlite3.connect("library_local.db")
+        conn = sqlite3.connect(SQLITE_DB_PATH)
         conn.row_factory = sqlite3.Row
         return conn, conn.cursor()
     
     try:
+        if mysql is None:
+            raise RuntimeError("mysql.connector not available")
+        mysql_host = os.environ.get('MYSQL_HOST', 'localhost')
+        mysql_user = os.environ.get('MYSQL_USER', 'root')
+        mysql_password = os.environ.get('MYSQL_PASSWORD', '')
+        mysql_database = os.environ.get('MYSQL_DATABASE', 'library_db')
         conn = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="23k91a6713",
-            database="library_db"
+            host=mysql_host,
+            user=mysql_user,
+            password=mysql_password,
+            database=mysql_database
         )
         return conn, conn.cursor(dictionary=True)
     except Exception as e:
         print(f"MySQL Connection Failed: {e}. Falling back to SQLite3...")
         USING_SQLITE = True
         # Establish local SQLite database
-        conn = sqlite3.connect("library_local.db")
+        conn = sqlite3.connect(SQLITE_DB_PATH)
         conn.row_factory = sqlite3.Row
         init_sqlite_db(conn)
         return conn, conn.cursor()

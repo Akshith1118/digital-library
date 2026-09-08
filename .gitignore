@@ -14,3 +14,9 @@ ENV/
 Thumbs.db
 .vscode/
 .idea/
+
+# SQLite database (ephemeral on Render; generated at runtime)
+library_local.db
+
+# Uploaded files (ephemeral on Render; regenerated at runtime)
+static/uploads/

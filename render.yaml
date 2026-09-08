@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: digital-library
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true   # Render auto-generates a secure random value
+      - key: USE_SQLITE
+        value: "true"         # Force SQLite; no MySQL needed on Render
