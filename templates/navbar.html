@@ -1,0 +1,83 @@
+<!-- Top Navigation Bar for Libris Digital -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary-custom sticky-top shadow-sm py-2">
+    <div class="container-fluid px-3 px-lg-4">
+        <!-- Brand Logo & Name at the Top -->
+        <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-white fs-4 me-4" href="{{ '/admin/dashboard' if session.get('role') == 'admin' else '/dashboard' }}">
+            <span class="material-symbols-outlined text-warning fs-2">local_library</span>
+            <span class="brand-text">Libris Digital</span>
+        </a>
+
+        <!-- Mobile Toggle Hamburger Button -->
+        <button class="navbar-toggler border-0 shadow-none text-white p-1" type="button" data-bs-toggle="collapse" data-bs-target="#librisNavbar" aria-controls="librisNavbar" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="material-symbols-outlined fs-2">menu</span>
+        </button>
+
+        <!-- Menu Navigation Links & Right-side Controls -->
+        <div class="collapse navbar-collapse" id="librisNavbar">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-1 pt-2 pt-lg-0">
+                {% if session.get('role') == 'admin' %}
+                <li class="nav-item">
+                    <a class="nav-link topnav-link text-white px-3 py-2 rounded-3 d-flex align-items-center gap-2 {{ 'active' if request.path == '/admin/dashboard' else '' }}" href="/admin/dashboard">
+                        <span class="material-symbols-outlined fs-5">dashboard</span>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link topnav-link text-white px-3 py-2 rounded-3 d-flex align-items-center gap-2 {{ 'active' if '/admin/books' in request.path else '' }}" href="/admin/books">
+                        <span class="material-symbols-outlined fs-5">menu_book</span>
+                        <span>Book Management</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link topnav-link text-white px-3 py-2 rounded-3 d-flex align-items-center gap-2 {{ 'active' if '/admin/users' in request.path else '' }}" href="/admin/users">
+                        <span class="material-symbols-outlined fs-5">manage_accounts</span>
+                        <span>User Management</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link topnav-link text-white px-3 py-2 rounded-3 d-flex align-items-center gap-2 {{ 'active' if '/admin/reports' in request.path else '' }}" href="/admin/reports">
+                        <span class="material-symbols-outlined fs-5">assessment</span>
+                        <span>Reports & Logs</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link topnav-link text-white px-3 py-2 rounded-3 d-flex align-items-center gap-2 {{ 'active' if request.path == '/dashboard' else '' }}" href="/dashboard">
+                        <span class="material-symbols-outlined fs-5">dashboard</span>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <a class="nav-link topnav-link text-white px-3 py-2 rounded-3 d-flex align-items-center gap-2 {{ 'active' if '/profile' in request.path else '' }}" href="/profile">
+                        <span class="material-symbols-outlined fs-5">person</span>
+                        <span>Profile Settings</span>
+                    </a>
+                </li>
+            </ul>
+
+            <!-- Right Controls: Theme Toggle, User Info Badge, Log Out -->
+            <div class="d-flex align-items-center gap-3 pt-3 pt-lg-0 border-top border-lg-0 mt-2 mt-lg-0 flex-wrap flex-sm-nowrap">
+                <!-- Theme Toggle Button -->
+                <button class="btn btn-outline-light rounded-circle p-2 d-flex align-items-center justify-content-center" id="theme-toggle" title="Toggle Theme" style="width: 38px; height: 38px;">
+                    <span class="material-symbols-outlined fs-5">dark_mode</span>
+                </button>
+
+                <!-- User Profile Badge -->
+                <a href="/profile" class="text-decoration-none d-flex align-items-center gap-2 text-white px-2 py-1 rounded-3 topnav-user-badge">
+                    <img src="/static/uploads/{{ session.get('profile_image', 'default_profile.png') }}" class="rounded-circle border border-2 border-white" width="36" height="36" alt="Avatar" style="object-fit: cover;">
+                    <div class="text-start lh-1">
+                        <div class="fw-semibold text-white small">{{ session.get('name', 'User') }}</div>
+                        <span class="badge bg-warning text-dark text-uppercase mt-1" style="font-size: 0.65rem; letter-spacing: 0.5px;">{{ session.get('role', 'student') }}</span>
+                    </div>
+                </a>
+
+                <!-- Log Out Button -->
+                <a href="/logout" class="btn btn-danger btn-sm d-flex align-items-center gap-1 px-3 py-2 rounded-3 text-white shadow-sm fw-semibold">
+                    <span class="material-symbols-outlined fs-6">logout</span>
+                    <span>Log Out</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>

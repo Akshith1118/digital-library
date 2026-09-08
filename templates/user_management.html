@@ -12,58 +12,16 @@
 </head>
 <body>
 
-<!-- Sidebar -->
-<aside class="sidebar d-flex flex-col p-3 text-white">
-    <div class="d-flex align-items-center gap-2 mb-4 px-2">
-        <span class="material-symbols-outlined text-warning fs-3">local_library</span>
-        <h4 class="fw-bold m-0">Libris Admin</h4>
-    </div>
-    <ul class="nav nav-pills flex-column mb-auto gap-1">
-        <li>
-            <a href="/admin/dashboard" class="nav-link text-white d-flex align-items-center gap-3 py-2 px-3">
-                <span class="material-symbols-outlined">dashboard</span> Dashboard
-            </a>
-        </li>
-        <li>
-            <a href="/admin/books" class="nav-link text-white d-flex align-items-center gap-3 py-2 px-3">
-                <span class="material-symbols-outlined">menu_book</span> Book Management
-            </a>
-        </li>
-        <li>
-            <a href="/admin/users" class="nav-link text-white active d-flex align-items-center gap-3 py-2 px-3">
-                <span class="material-symbols-outlined">manage_accounts</span> User Management
-            </a>
-        </li>
-        <li>
-            <a href="/admin/reports" class="nav-link text-white d-flex align-items-center gap-3 py-2 px-3">
-                <span class="material-symbols-outlined">assessment</span> Reports & Logs
-            </a>
-        </li>
-        <li>
-            <a href="/profile" class="nav-link text-white d-flex align-items-center gap-3 py-2 px-3">
-                <span class="material-symbols-outlined">person</span> Profile Settings
-            </a>
-        </li>
-    </ul>
-    <hr class="text-white-50">
-    <div>
-        <a href="/logout" class="nav-link text-danger d-flex align-items-center gap-3 py-2 px-3">
-            <span class="material-symbols-outlined">logout</span> Log Out
-        </a>
-    </div>
-</aside>
+{% include 'navbar.html' %}
 
 <!-- Main Container -->
-<main class="main-content p-4">
+<main class="main-content container-fluid px-4 py-4">
     <!-- Header -->
-    <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
-        <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-outline-secondary d-lg-none" id="sidebar-toggle">
-                <span class="material-symbols-outlined">menu</span>
-            </button>
-            <h2 class="fw-bold m-0 text-primary">User Accounts</h2>
-        </div>
-        <button class="btn btn-primary d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addUserModal">
+    <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom flex-wrap gap-2">
+        <h2 class="fw-bold m-0 text-primary d-flex align-items-center gap-2">
+            <span class="material-symbols-outlined fs-2">manage_accounts</span> User Accounts
+        </h2>
+        <button class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
             <span class="material-symbols-outlined">person_add</span> Add Member
         </button>
     </header>

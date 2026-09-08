@@ -47,47 +47,47 @@ body.dark-mode textarea:focus {
     color: #ffffff;
 }
 
-/* Sidebar Styling */
-.sidebar {
-    width: var(--sidebar-width);
-    height: 100vh;
-    position: fixed;
-    top: 0;
-    left: 0;
-    background-color: #1e3a8a;
-    color: #ffffff;
-    transition: transform var(--transition-speed);
-    z-index: 1000;
+/* Top Navbar Styling */
+.bg-primary-custom {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.sidebar a {
-    color: rgba(255, 255, 255, 0.8);
-    text-decoration: none;
-    transition: all var(--transition-speed);
+body.dark-mode .bg-primary-custom {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border-bottom: 1px solid #334155;
 }
 
-.sidebar a:hover, .sidebar a.active {
-    color: #ffffff;
+.topnav-link {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+
+.topnav-link:hover {
+    color: #ffffff !important;
     background-color: rgba(255, 255, 255, 0.15);
-    border-left: 4px solid #f59e0b;
+}
+
+.topnav-link.active {
+    color: #ffffff !important;
+    background-color: rgba(255, 255, 255, 0.25);
+    font-weight: 600;
+    box-shadow: inset 0 -2px 0 #f59e0b;
+}
+
+.topnav-user-badge {
+    transition: background-color 0.2s;
+}
+
+.topnav-user-badge:hover {
+    background-color: rgba(255, 255, 255, 0.15);
 }
 
 .main-content {
-    margin-left: var(--sidebar-width);
-    min-height: 100vh;
-    transition: margin-left var(--transition-speed);
-}
-
-@media (max-width: 991.98px) {
-    .sidebar {
-        transform: translateX(-100%);
-    }
-    .sidebar.show {
-        transform: translateX(0);
-    }
-    .main-content {
-        margin-left: 0;
-    }
+    margin-left: 0 !important;
+    min-height: calc(100vh - 65px);
+    width: 100%;
 }
 
 /* Custom UI Polish */
